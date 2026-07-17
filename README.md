@@ -376,7 +376,7 @@ The last command in the burst we discovered before shows that they are targeting
 
 | Field | Value |
 |------|-------|
-| Host | <Placeholder> |
+| Host | nh-wks-bill-01.corp.nimbushealth.com |
 | Timestamp | 2026-03-11T12:44:39.6982182Z |
 | Process | net.exe  |
 | Parent Process |cmd.exe |
@@ -424,7 +424,7 @@ The attacker is seen using the `"net.exe" view /domain:nimbus` command to query 
 
 | Field | Value |
 |------|-------|
-| Host | <Placeholder> |
+| Host | nh-wks-bill-01.corp.nimbushealth.com |
 | Timestamp | 2026-03-11T13:17:35.6183089Z |
 | Process | net.exe |
 | Parent Process | powershell.exe |
@@ -471,7 +471,7 @@ The attacker queried DNS to discover network hosts based off ip addresses and ra
 
 | Field | Value |
 |------|-------|
-| Host | <Placeholder> |
+| Host | nh-wks-bill-01.corp.nimbushealth.com|
 | Timestamp | 2026-03-11T13:18:51.6781043Z - 2026-03-11T13:26:54.8695593Z |
 | Process | nslookup.exe/ mstsc.exe |
 | Parent Process | powershell.exe/cmd.exe |
@@ -519,7 +519,7 @@ The attacker executed the command `"NOTEPAD.EXE" \\nh-fs-01\Billing\2026-03\Appr
 
 | Field | Value |
 |------|-------|
-| Host | <Placeholder> |
+| Host | nh-wks-bill-01.corp.nimbushealth.com |
 | Timestamp | 2026-03-11T12:11:56.1489995Z|
 | Process | Notepad.exe|
 | Parent Process | Explorer.exe|
@@ -570,7 +570,7 @@ The attacker accessed two files named `approved_pending_invoice_INV-773221_20260
 
 | Field | Value |
 |------|-------|
-| Host | <Placeholder> |
+| Host | nh-wks-bill-01.corp.nimbushealth.com |
 | Timestamp | 2026-03-11T12:11:56.1489995Z|
 | Process | Notepad.exe|
 | Parent Process | Explorer.exe|
@@ -613,6 +613,188 @@ DeviceProcessEvents
 HUNT LEAD: "The account also touched the workflow's audit trail, the record that's supposed to reflect the reviewer's actions, not a submitter's. Name the audit file it modified."
 
 ### 📌 Finding
+opened the `file review_audit_20260311.txt` from a remote network share using Windows Notepad.
+
+### 🔍 Evidence
+
+| Field | Value |
+|------|-------|
+| Host | nh-wks-bill-01.corp.nimbushealth.com |
+| Timestamp | 2026-03-11T12:13:11.9893745Z |
+| Process | Explorer.EXE|
+| Parent Process | notepad.exe |
+| Command Line | "NOTEPAD.EXE" \\nh-fs-01\Billing\2026-03\AuditTrail\review_audit_20260311.txt |
+
+### 💡 Why it matters
+<Explain impact, risk, and relevance>
+
+### 🔧 KQL Query Used
+```kql
+DeviceProcessEvents
+| where DeviceName startswith "" "nh-"
+| where TimeGenerated between (
+    datetime(2026-03-08) ..
+    datetime(2026-03-18 23:59:59)
+    )
+| where AccountName == "j.morris"
+| where ProcessCommandLine contains "audit" or ProcessCommandLine contains "review"
+| project TimeGenerated, ActionType, FolderPath, FileName, InitiatingProcessAccountName, ProcessCommandLine
+| order by TimeGenerated desc
+```
+```kql
+DeviceFileEvents
+| where DeviceName startswith "" "nh-"
+| where TimeGenerated between (
+    datetime(2026-03-08) ..
+    datetime(2026-03-18 23:59:59)
+    )
+| where InitiatingProcessAccountName == "j.morris"
+| where FileName has "review_audit"
+| project TimeGenerated, ActionType, FolderPath, FileName, InitiatingProcessAccountName, InitiatingProcessCommandLine
+| order by TimeGenerated desc 
+```
+
+
+### 🖼️ Screenshot
+
+<img width="1546" height="124" alt="image" src="https://github.com/user-attachments/assets/9490ac83-9530-4a20-9cda-e74851030c9b" />
+
+<img width="1014" height="319" alt="image" src="https://github.com/user-attachments/assets/93da4c7e-5c1e-47f0-9b52-e440988dd7db" />
+
+### 🛠️ Detection Recommendation
+
+**Hunting Tip:**  
+<Actionable guidance for defenders>
+
+**Answer:** `review_audit_20260311.txt`
+</details>
+
+<details>
+<summary id="-flag-12">🚩 <strong>Flag 12: Staged Under Cover <Technique Name></strong></summary>
+
+### 🎯 Objective
+HUNT LEAD: "This is the one that matters. The account pulled payroll material out of HR and dropped it into the billing share, renamed to look like a billing exception, so it would sit there without raising an eyebrow. Name the payroll file as it ended up in the billing folder."
+
+### 📌 Finding
+The compromised account **j.morris** accessed a payroll document from the HR share and created a copy of it in the **Billing\Exceptions** directory. The payroll file retained its original name, allowing sensitive HR data to be staged within a legitimate billing workflow location where it was less likely to attract attention.
+
+### 🔍 Evidence
+
+| Field | Value |
+|------|-------|
+| Host | nh-wks-bill-01.corp.nimbushealth.com|
+| Timestamp | 2026-03-11 13:01:47.502 |
+| Process | NOTEPAD.EXE |
+| Parent Process | explorer.exe |
+| Command Line | `NOTEPAD.EXE \\nh-fs-01\HR\2026-03\Payroll\temp_payroll_review_jmorris_20260311.txt.txt` |
+
+### 💡 Why it matters
+This activity demonstrates **unauthorized access to sensitive HR payroll information** followed by **staging of the data in an unrelated Billing share**. By placing the file in the `Billing\Exceptions` directory, the attacker attempted to blend the payroll data with legitimate billing artifacts, reducing the likelihood of immediate detection. Cross-department file movement involving sensitive data is a strong indicator of potential data theft or preparation for exfiltration.
+
+### 🔧 KQL Query Used
+```kql
+DeviceFileEvents
+| where DeviceName startswith "nh-"
+| where TimeGenerated between (
+    datetime(2026-03-08) ..
+    datetime(2026-03-18 23:59:59)
+)
+| where RequestAccountName == "j.morris"
+| where ActionType has "FileCreated" or ActionType has "Modified"
+| where FolderPath has "Billing"
+| project TimeGenerated, RequestAccountName, ActionType, FileName, PreviousFileName, FolderPath, PreviousFolderPath
+| order by TimeGenerated asc
+```
+### 🖼️ Screenshot
+<img width="1552" height="175" alt="image" src="https://github.com/user-attachments/assets/0c78e21e-139d-4847-a629-19ad91f74eab" />
+
+
+### 🛠️ Detection Recommendation
+
+**Hunting Tip:**  
+<Actionable guidance for defenders>
+
+**Answer:** `temp_payroll_review_jmorris_20260311.txt.txt`
+</details>
+
+<details>
+<summary id="-flag-13">🚩 <strong>Flag 13: The Second Target <Technique Name></strong></summary>
+
+### 🎯 Objective
+HUNT LEAD: "Payroll wasn't the only thing they took from HR. In the same burst, they touched a second HR file that has nothing to do with payroll. Name it, and note what it tells you about the scope."
+
+<details>
+<summary id="-flag-13">🚩 <strong>Flag 13: The Second Target <Technique Name></strong></summary>
+
+### 🎯 Objective
+HUNT LEAD: "Payroll wasn't the only thing they took from HR. In the same burst, they touched a second HR file that has nothing to do with payroll. Name it, and note what it tells you about the scope."
+
+### 📌 Finding
+During the same data collection activity targeting HR payroll information, the attacker accessed a second HR-related document: `quarterly_awards_shortlist_20260310.txt`. Unlike the payroll artifacts, this file contained employee recognition/selection information, demonstrating that the attacker was not narrowly focused on payroll data but was collecting broader HR information.
+
+### 🔍 Evidence
+
+| Field | Value |
+|------|-------|
+| Host | nh-wks-bill-01.corp.nimbushealth.com |
+| Timestamp | 2026-03-11T13:00:24.7781342Z |
+| Process | Explorer.EXE |
+| Parent Process | notepad.exe |
+| Command Line | "NOTEPAD.EXE" \\nh-fs-01\HR\2026-03\Awards\quarterly_awards_shortlist_20260310.txt |
+
+### 💡 Why it matters
+The access of `quarterly_awards_shortlist_20260310.txt` shows the attacker expanded beyond payroll-related documents and targeted additional employee information stored within HR shares. This indicates broader discovery and collection activity against sensitive business data rather than a single-purpose payroll theft.
+
+The presence of unrelated HR documents in the same collection burst suggests the attacker was likely enumerating accessible files and opportunistically gathering valuable personnel information.
+
+
+### 🔧 KQL Query Used
+```kql
+DeviceProcessEvents
+| where DeviceName startswith "nh-"
+| where TimeGenerated between (
+    datetime(2026-03-08) ..
+    datetime(2026-03-18 23:59:59)
+    )
+| where AccountName == "j.morris"
+| where ProcessCommandLine has "hr"
+| project TimeGenerated, ActionType, FolderPath, FileName, InitiatingProcessAccountName, ProcessCommandLine, InitiatingProcessCommandLine
+| order by TimeGenerated desc
+```
+
+```kql
+DeviceFileEvents
+| where DeviceName startswith "nh-"
+| where TimeGenerated between (
+    datetime(2026-03-08) ..
+    datetime(2026-03-18 23:59:59)
+)
+| where RequestAccountName == "j.morris"
+| where FileName has "shortlist"
+| project TimeGenerated, RequestAccountName, ActionType, FileName, PreviousFileName, FolderPath, PreviousFolderPath
+| order by TimeGenerated asc
+```
+### 🖼️ Screenshot
+<img width="1533" height="407" alt="image" src="https://github.com/user-attachments/assets/6d9f3435-6726-4740-8848-a8e025ce7068" />
+
+<img width="1529" height="196" alt="image" src="https://github.com/user-attachments/assets/525b9756-7b63-4f2a-8bd9-20c1eb5b1350" />
+
+
+### 🛠️ Detection Recommendation
+
+**Hunting Tip:**  
+<Actionable guidance for defenders>
+
+**Answer:** `quarterly_awards_shortlist_20260310.txt`
+</details>
+
+<details>
+<summary id="-flag-14">🚩 <strong>Flag 14: The Onward Hops <Technique Name></strong></summary>
+
+### 🎯 Objective
+HUNT LEAD: "They didn't stop at the billing box. From there the account opened remote sessions onto two more machines. Name both."
+
+### 📌 Finding
 <High-level description of the activity>
 
 ### 🔍 Evidence
@@ -629,21 +811,314 @@ HUNT LEAD: "The account also touched the workflow's audit trail, the record that
 <Explain impact, risk, and relevance>
 
 ### 🔧 KQL Query Used
-| where ProcessCommandLine contains "audit" or ProcessCommandLine contains "review"
-
+```kql
+DeviceLogonEvents
+| where DeviceName startswith "nh-"
+| where TimeGenerated between (
+    datetime(2026-03-08) ..
+    datetime(2026-03-18 23:59:59)
+)
+| where isnotempty( RemoteIP)
+| where LogonType == "RemoteInteractive"
+| where AccountName  == "j.morris"
+| order by TimeGenerated asc
+```
 
 ### 🖼️ Screenshot
-<img width="1014" height="319" alt="image" src="https://github.com/user-attachments/assets/93da4c7e-5c1e-47f0-9b52-e440988dd7db" />
+<img width="1300" height="378" alt="image" src="https://github.com/user-attachments/assets/d8e7d238-750f-484f-9dbb-41205e8c8170" />
+
+
 
 ### 🛠️ Detection Recommendation
 
 **Hunting Tip:**  
 <Actionable guidance for defenders>
 
-**Answer:** `review_audit_20260311.txt`
+**Answer:** nh-wks-it-01.corp.nimbushealth.com, nh-fs-01.corp.nimbushealth.com
 </details>
 
----
+<details>
+<summary id="-flag-15">🚩 <strong>Flag 15: The Red Herring <Technique Name></strong></summary>
+
+### 🎯 Objective
+HUNT LEAD: "One of those two hops is a red herring, and I want you to prove it rather than assume it. They landed on the IT workstation. Did they actually do anything there? Check, and tell me what you found."
+
+### 📌 Finding
+the attacker established a remote session but did not execute commands, run tools, or perform meaningful actions there
+
+### 🔍 Evidence
+
+| Field | Value |
+|------|-------|
+| Host | nh-wks-it-01.corp.nimbushealth.com|
+| Timestamp | 2026-03-11 |
+| Process | N/a |
+| Parent Process | N/a |
+| Command Line | N/a |
+
+### 💡 Why it matters
+<Explain impact, risk, and relevance>
+
+### 🔧 KQL Query Used
+```kql
+DeviceProcessEvents
+| where DeviceName startswith "nh-"
+| where TimeGenerated between (
+    datetime(2026-03-08) ..
+    datetime(2026-03-18 23:59:59)
+)
+| where AccountName  == "j.morris"
+| where DeviceName == "nh-wks-it-01.corp.nimbushealth.com"
+| project TimeGenerated, DeviceName, InitiatingProcessCommandLine,  FolderPath, InitiatingProcessFolderPath, InitiatingProcessFileName, FileName
+| order by TimeGenerated asc
+```
+```kql
+DeviceFileEvents
+| where DeviceName startswith "nh-"
+| where TimeGenerated between (
+    datetime(2026-03-08) ..
+    datetime(2026-03-18 23:59:59)
+)
+| where RequestAccountName  == "j.morris"
+| where DeviceName == "nh-wks-it-01.corp.nimbushealth.com"
+| project TimeGenerated, DeviceName, InitiatingProcessCommandLine,  FolderPath, InitiatingProcessFolderPath, InitiatingProcessFileName, FileName
+| order by TimeGenerated asc
+```
+
+### 🖼️ Screenshot
+
+<img width="1853" height="827" alt="image" src="https://github.com/user-attachments/assets/a4167149-4514-465d-bcc6-9b337c03fdfa" />
+
+<img width="1868" height="829" alt="image" src="https://github.com/user-attachments/assets/43ed45a5-a9f8-4a7f-be5a-1764b0898468" />
+
+### 🛠️ Detection Recommendation
+
+**Hunting Tip:**  
+<Actionable guidance for defenders>
+
+</details>
+
+<details>
+<summary id="-flag-16">🚩 <strong>Flag 6: Checking Their Rights <Technique Name></strong></summary>
+
+### 🎯 Objective
+HUNT LEAD: "On the file server, the account's operator ran a command to check what privileges and groups they had. Give me it."
+
+### 📌 Finding
+The attacker enumerated accounnt priveleges on the file server using the `"whoami.exe"/groups` command. 
+
+### 🔍 Evidence
+
+| Field | Value |
+|------|-------|
+| Host | nh-fs-01.corp.nimbushealth.com |
+| Timestamp | 2026-03-11T13:37:23.5424345Z |
+| Process | whoami.exe |
+| Parent Process |"powershell.exe"  |
+| Command Line | "whoami.exe" /groups|
+
+### 💡 Why it matters
+<Explain impact, risk, and relevance>
+
+### 🔧 KQL Query Used
+```kql
+DeviceProcessEvents
+| where DeviceName startswith "nh-"
+| where TimeGenerated between (
+    datetime(2026-03-08) ..
+    datetime(2026-03-18 23:59:59)
+)
+| where AccountName  == "j.morris"
+| where DeviceName == "nh-fs-01.corp.nimbushealth.com"
+| where ProcessCommandLine has "whoami"
+|project TimeGenerated, AccountName, ProcessCommandLine, InitiatingProcessCommandLine, FileName, FolderPath
+| order by TimeGenerated asc
+```
+### 🖼️ Screenshot
+<img width="1090" height="233" alt="image" src="https://github.com/user-attachments/assets/6daaf0a7-d3ab-4c07-94af-1195347ae731" />
+
+
+### 🛠️ Detection Recommendation
+
+**Hunting Tip:**  
+<Actionable guidance for defenders>
+
+**Answer:** `"whoami.exe" /groups`
+</details>
+
+<details>
+<summary id="-flag-17">🚩 <strong>Flag 17: What the Server Offered <Technique Name></strong></summary>
+
+### 🎯 Objective
+HUNT LEAD: "Right after the privilege check, they enumerated what the file server was offering. Give me that command."
+
+### 📌 Finding
+The attacker used net.exe with the share command to list available SMB shares on the system. This was likely reconnaissance to identify accessible file shares and potential data sources for lateral movement or exfiltration.
+
+### 🔍 Evidence
+
+| Field | Value |
+|------|-------|
+| Host | nh-fs-01.corp.nimbushealth.com |
+| Timestamp | <Placeholder> |
+| Process | net.exe |
+| Parent Process | "powershell.exe"  |
+| Command Line | "net.exe" share |
+
+### 💡 Why it matters
+<Explain impact, risk, and relevance>
+
+### 🔧 KQL Query Used
+```kql
+DeviceProcessEvents
+| where DeviceName startswith "nh-"
+| where TimeGenerated between (
+    datetime(2026-03-08) ..
+    datetime(2026-03-18 23:59:59)
+)
+| where AccountName  == "j.morris"
+| where DeviceName == "nh-fs-01.corp.nimbushealth.com"
+| where InitiatingProcessCommandLine  has_any ("powershell", "cmd")
+|project TimeGenerated, AccountName, ProcessCommandLine, InitiatingProcessCommandLine, FileName, FolderPath
+| order by TimeGenerated asc
+```
+### 🖼️ Screenshot
+<img width="1306" height="310" alt="image" src="https://github.com/user-attachments/assets/34e500bf-efd4-4778-8662-8cf9e56444b5" />
+
+
+### 🛠️ Detection Recommendation
+
+**Hunting Tip:**  
+<Actionable guidance for defenders>
+
+
+**Answer:** `"net.exe" share`
+</details>
+
+<details>
+<summary id="-flag-18">🚩 <strong>Flag 18: Someone Elses Payroll <Technique Name></strong></summary>
+
+### 🎯 Objective
+HUNT LEAD: "The last thing they did on the file server was open a payroll review belonging to a different employee entirely. Name the file, and note whose it is."
+
+### 📌 Finding
+The attacker accessed the file payroll_review_dpatel_20260311.txt using `NOTEPAD`
+
+### 🔍 Evidence
+
+| Field | Value |
+|------|-------|
+| Host | nh-fs-01.corp.nimbushealth.com |
+| Timestamp | 2026-03-11T13:40:13.3108876Z|
+| Process | notepad.exe |
+| Parent Process | explorer.exe |
+| Command Line | "NOTEPAD.EXE" C:\Users\j.morris\Documents\payroll_review_dpatel_20260311.txt |
+
+### 💡 Why it matters
+<Explain impact, risk, and relevance>
+
+### 🔧 KQL Query Used
+```kql
+DeviceProcessEvents
+| where DeviceName startswith "nh-"
+| where TimeGenerated between (
+    datetime(2026-03-08) ..
+    datetime(2026-03-18 23:59:59)
+)
+| where AccountName  == "j.morris"
+| where DeviceName == "nh-fs-01.corp.nimbushealth.com"
+| where ProcessCommandLine has "payroll"
+|project TimeGenerated, AccountName, ProcessCommandLine, InitiatingProcessCommandLine, FileName, FolderPath
+| order by TimeGenerated asc
+```
+
+### 🖼️ Screenshot
+<img width="1336" height="244" alt="image" src="https://github.com/user-attachments/assets/9e2e7900-0429-4a32-84a2-754bfecb20b2" />
+
+
+### 🛠️ Detection Recommendation
+
+**Hunting Tip:**  
+<Actionable guidance for defenders>
+
+**Answer:** `payroll_review_dpatel_20260311.txt`
+</details>
+
+<details>
+<summary id="-flag-19">🚩 <strong>Flag 19: What Else Left HR <Technique Name></strong></summary>
+
+### 🎯 Objective
+HUNT LEAD: "Step back over the HR collection. Beyond the one payroll file everyone notices, how would you characterise what this account took out of HR? Give me the scope in a sentence."
+
+### 📌 Finding
+The attacker did not only take the payroll file; they also accessed other HR materials (such as the quarterly awards shortlist), showing collection of broader employee information from HR shares
+
+### 🔍 Evidence
+
+| Field | Value |
+|------|-------|
+| Host | <Placeholder> |
+| Timestamp | <Placeholder> |
+| Process | <Placeholder> |
+| Parent Process | <Placeholder> |
+| Command Line | <Placeholder> |
+
+### 💡 Why it matters
+<Explain impact, risk, and relevance>
+
+### 🔧 KQL Query Used
+<Add KQL here>
+
+### 🖼️ Screenshot
+<Insert screenshot>
+
+### 🛠️ Detection Recommendation
+
+**Hunting Tip:**  
+<Actionable guidance for defenders>
+
+**Answer:** The attacker did not only take the payroll file; they also accessed other HR materials (such as the quarterly awards shortlist), showing collection of broader employee information from HR shares
+
+</details>
+
+<details>
+<summary id="-flag-20">🚩 <strong>Flag 20: The Honest Read <Technique Name></strong></summary>
+
+### 🎯 Objective
+HUNT LEAD: "The clinic will want to write this up as a curious employee with leftover access. You've seen the evidence. Give me the honest read. What actually happened here, and what's missing that tells you it wasn't malware and wasn't a routine insider mistake?"
+
+### 📌 Finding
+What happened: A threat actor was driving the compromised account interactively from the external IP 148.64.103.173, not a curious employee.
+What is absent: No malware deployment/persistence artifacts or evidence of normal insider activity (routine access patterns/user behavior) were observed.
+
+### 🔍 Evidence
+
+| Field | Value |
+|------|-------|
+| Host | <Placeholder> |
+| Timestamp | <Placeholder> |
+| Process | <Placeholder> |
+| Parent Process | <Placeholder> |
+| Command Line | <Placeholder> |
+
+### 💡 Why it matters
+<Explain impact, risk, and relevance>
+
+### 🔧 KQL Query Used
+<Add KQL here>
+
+### 🖼️ Screenshot
+<Insert screenshot>
+
+### 🛠️ Detection Recommendation
+
+**Hunting Tip:**  
+<Actionable guidance for defenders>
+
+**Answer:** What happened: A threat actor was driving the compromised account interactively from the external IP 148.64.103.173, not a curious employee.
+What is absent: No malware deployment/persistence artifacts or evidence of normal insider activity (routine access patterns/user behavior) were observed.
+</details>
+
 
 ## 🚨 Detection Gaps & Recommendations
 
