@@ -411,6 +411,240 @@ DeviceProcessEvents
 
 ---
 
+<details>
+<summary id="-flag-7">🚩 <strong>Flag 7: Widening the Net <Technique Name></strong></summary>
+
+### 🎯 Objective
+HUNT LEAD: "The operator came back to the shell a second time, later, and widened the net beyond the single server. One command asks the domain itself what's out there. Give me it."
+
+### 📌 Finding
+The attacker is seen using the `"net.exe" view /domain:nimbus` command to query domain resources to identify potential targets. 
+
+### 🔍 Evidence
+
+| Field | Value |
+|------|-------|
+| Host | <Placeholder> |
+| Timestamp | 2026-03-11T13:17:35.6183089Z |
+| Process | net.exe |
+| Parent Process | powershell.exe |
+| Command Line | "net.exe" view /domain:nimbus |
+
+### 💡 Why it matters
+<Explain impact, risk, and relevance>
+
+### 🔧 KQL Query Used
+DeviceProcessEvents
+| where DeviceName startswith "" "nh-"
+| where TimeGenerated between (
+    datetime(2026-03-08) ..
+    datetime(2026-03-18 23:59:59)
+    )
+| where InitiatingProcessAccountName == "j.morris"
+| project TimeGenerated, AccountName, FileName, ProcessCommandLine, ProcessId, InitiatingProcessCommandLine
+| order by TimeGenerated asc
+
+### 🖼️ Screenshot
+<img width="1213" height="85" alt="image" src="https://github.com/user-attachments/assets/9e6a3e1d-35ac-4f01-a0ea-76e5a44698ac" />
+
+
+### 🛠️ Detection Recommendation
+
+**Hunting Tip:**  
+<Actionable guidance for defenders>
+
+**Answer:** `"net.exe" view /domain:nimbus`
+</details>
+
+---
+
+<details>
+<summary id="-flag-8">🚩 <strong>Flag 8: Mapping Before the Jump <Technique Name></strong></summary>
+
+### 🎯 Objective
+HUNT LEAD: "Straight after the domain check, they spend two minutes building a picture of the local network, then immediately jump to another host. Tell me what they were doing in those two minutes, and why it comes right before the pivot."
+
+### 📌 Finding
+The attacker queried DNS to discover network hosts based off ip addresses and ranges. They then pivoted to new hosts using RDP. mstsc  /v:10.1.0.235, mstsc  /v:10.1.0.233
+
+### 🔍 Evidence
+
+| Field | Value |
+|------|-------|
+| Host | <Placeholder> |
+| Timestamp | 2026-03-11T13:18:51.6781043Z - 2026-03-11T13:26:54.8695593Z |
+| Process | nslookup.exe/ mstsc.exe |
+| Parent Process | powershell.exe/cmd.exe |
+| Command Line | <Placeholder> |
+
+### 💡 Why it matters
+<Explain impact, risk, and relevance>
+
+### 🔧 KQL Query Used
+DeviceProcessEvents
+| where DeviceName startswith "" "nh-"
+| where TimeGenerated between (
+    datetime(2026-03-08) ..
+    datetime(2026-03-18 23:59:59)
+    )
+| where InitiatingProcessAccountName == "j.morris"
+| project TimeGenerated, AccountName, FileName, ProcessCommandLine, ProcessId, InitiatingProcessCommandLine
+| order by TimeGenerated asc
+
+### 🖼️ Screenshot
+<img width="1204" height="269" alt="image" src="https://github.com/user-attachments/assets/65a65237-257e-472b-aac6-b3e6a259ca1e" />
+
+
+### 🛠️ Detection Recommendation
+
+**Hunting Tip:**  
+<Actionable guidance for defenders>
+
+
+**Answer:** `Network discovery, Remote Desktop pivot`
+</details>
+
+---
+
+<details>
+<summary id="-flag-9">🚩 <strong>Flag 9: Out of Role <Technique Name></strong></summary>
+
+### 🎯 Objective
+HUNT LEAD: "A billing analyst on submissions has no business in the sign-off stage. But this account went there. Name the billing workflow folder it reached into that its role shouldn't touch."
+
+### 📌 Finding
+The attacker executed the command `"NOTEPAD.EXE" \\nh-fs-01\Billing\2026-03\Approved\approved_pending_invoice_INV-773221_20260311.txt` at `2026-03-11T12:11:56.1489995Z` to gain access to the "Approved" folder to which the user should not be accessing on a normal bases. 
+
+### 🔍 Evidence
+
+| Field | Value |
+|------|-------|
+| Host | <Placeholder> |
+| Timestamp | 2026-03-11T12:11:56.1489995Z|
+| Process | Notepad.exe|
+| Parent Process | Explorer.exe|
+| Command Line | "NOTEPAD.EXE" \\nh-fs-01\Billing\2026-03\Approved\approved_pending_invoice_INV-773221_20260311.txt|
+
+### 💡 Why it matters
+<Explain impact, risk, and relevance>
+
+### 🔧 KQL Query Used
+```kql
+DeviceProcessEvents
+| where DeviceName startswith "" "nh-"
+| where TimeGenerated between (
+    datetime(2026-03-08) ..
+    datetime(2026-03-18 23:59:59)
+    )
+| where AccountName == "j.morris"
+| where ProcessCommandLine contains "approv"
+| project TimeGenerated, ActionType, FolderPath, FileName, InitiatingProcessAccountName, ProcessCommandLine
+| order by TimeGenerated desc 
+```
+
+### 🖼️ Screenshot
+<img width="1209" height="490" alt="image" src="https://github.com/user-attachments/assets/49ade9b5-8167-43a9-95bb-d8f4e6ae37aa" />
+
+
+### 🛠️ Detection Recommendation
+
+**Hunting Tip:**  
+<Actionable guidance for defenders>
+
+**Answer:** `Approved`
+</details>
+
+---
+
+<details>
+<summary id="-flag-10">🚩 <strong>Flag 10: <Technique Name></strong></summary>
+
+### 🎯 Objective
+75
+HUNT LEAD: "Inside that folder, name the invoice this account handled."
+
+### 📌 Finding
+The attacker accessed two files named `approved_pending_invoice_INV-773221_20260311.txt` and `approved_pending_invoice_INV-664215_20260310.txt`
+
+### 🔍 Evidence
+
+| Field | Value |
+|------|-------|
+| Host | <Placeholder> |
+| Timestamp | 2026-03-11T12:11:56.1489995Z|
+| Process | Notepad.exe|
+| Parent Process | Explorer.exe|
+| Command Line | "NOTEPAD.EXE" \\nh-fs-01\Billing\2026-03\Approved\approved_pending_invoice_INV-773221_20260311.txt|
+
+### 💡 Why it matters
+<Explain impact, risk, and relevance>
+
+### 🔧 KQL Query Used
+```kql
+DeviceProcessEvents
+| where DeviceName startswith "" "nh-"
+| where TimeGenerated between (
+    datetime(2026-03-08) ..
+    datetime(2026-03-18 23:59:59)
+    )
+| where AccountName == "j.morris"
+| where ProcessCommandLine contains "approv"
+| project TimeGenerated, ActionType, FolderPath, FileName, InitiatingProcessAccountName, ProcessCommandLine
+| order by TimeGenerated desc 
+```
+
+### 🖼️ Screenshot
+<img width="1209" height="490" alt="image" src="https://github.com/user-attachments/assets/49ade9b5-8167-43a9-95bb-d8f4e6ae37aa" />
+
+### 🛠️ Detection Recommendation
+
+**Hunting Tip:**  
+<Actionable guidance for defenders>
+
+**Answer:** approved_pending_invoice_INV-773221_20260311.txt
+</details>
+
+---
+
+<details>
+<summary id="-flag-11">🚩 <strong>Flag 11:The Audit Trail<Technique Name></strong></summary>
+
+### 🎯 Objective
+HUNT LEAD: "The account also touched the workflow's audit trail, the record that's supposed to reflect the reviewer's actions, not a submitter's. Name the audit file it modified."
+
+### 📌 Finding
+<High-level description of the activity>
+
+### 🔍 Evidence
+
+| Field | Value |
+|------|-------|
+| Host | <Placeholder> |
+| Timestamp | <Placeholder> |
+| Process | <Placeholder> |
+| Parent Process | <Placeholder> |
+| Command Line | <Placeholder> |
+
+### 💡 Why it matters
+<Explain impact, risk, and relevance>
+
+### 🔧 KQL Query Used
+| where ProcessCommandLine contains "audit" or ProcessCommandLine contains "review"
+
+
+### 🖼️ Screenshot
+<img width="1014" height="319" alt="image" src="https://github.com/user-attachments/assets/93da4c7e-5c1e-47f0-9b52-e440988dd7db" />
+
+### 🛠️ Detection Recommendation
+
+**Hunting Tip:**  
+<Actionable guidance for defenders>
+
+**Answer:** `review_audit_20260311.txt`
+</details>
+
+---
+
 ## 🚨 Detection Gaps & Recommendations
 
 ### Observed Gaps
