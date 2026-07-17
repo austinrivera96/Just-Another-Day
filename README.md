@@ -557,7 +557,7 @@ DeviceProcessEvents
 ---
 
 <details>
-<summary id="-flag-10">🚩 <strong>Flag 10: <Technique Name></strong></summary>
+<summary id="-flag-10">🚩 <strong>Flag 10: The Invoice <Technique Name></strong></summary>
 
 ### 🎯 Objective
 75
