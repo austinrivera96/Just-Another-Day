@@ -669,6 +669,8 @@ DeviceFileEvents
 **Answer:** `review_audit_20260311.txt`
 </details>
 
+----
+
 <details>
 <summary id="-flag-12">🚩 <strong>Flag 12: Staged Under Cover <Technique Name></strong></summary>
 
@@ -716,6 +718,8 @@ DeviceFileEvents
 
 **Answer:** `temp_payroll_review_jmorris_20260311.txt.txt`
 </details>
+
+---
 
 <details>
 <summary id="-flag-13">🚩 <strong>Flag 13: The Second Target <Technique Name></strong></summary>
@@ -837,6 +841,8 @@ DeviceLogonEvents
 **Answer:** nh-wks-it-01.corp.nimbushealth.com, nh-fs-01.corp.nimbushealth.com
 </details>
 
+---
+
 <details>
 <summary id="-flag-15">🚩 <strong>Flag 15: The Red Herring <Technique Name></strong></summary>
 
@@ -898,6 +904,8 @@ DeviceFileEvents
 
 </details>
 
+---
+
 <details>
 <summary id="-flag-16">🚩 <strong>Flag 6: Checking Their Rights <Technique Name></strong></summary>
 
@@ -945,6 +953,8 @@ DeviceProcessEvents
 
 **Answer:** `"whoami.exe" /groups`
 </details>
+
+---
 
 <details>
 <summary id="-flag-17">🚩 <strong>Flag 17: What the Server Offered <Technique Name></strong></summary>
@@ -995,6 +1005,8 @@ DeviceProcessEvents
 **Answer:** `"net.exe" share`
 </details>
 
+---
+
 <details>
 <summary id="-flag-18">🚩 <strong>Flag 18: Someone Elses Payroll <Technique Name></strong></summary>
 
@@ -1044,6 +1056,8 @@ DeviceProcessEvents
 **Answer:** `payroll_review_dpatel_20260311.txt`
 </details>
 
+---
+
 <details>
 <summary id="-flag-19">🚩 <strong>Flag 19: What Else Left HR <Technique Name></strong></summary>
 
@@ -1080,6 +1094,8 @@ The attacker did not only take the payroll file; they also accessed other HR mat
 **Answer:** The attacker did not only take the payroll file; they also accessed other HR materials (such as the quarterly awards shortlist), showing collection of broader employee information from HR shares
 
 </details>
+
+---
 
 <details>
 <summary id="-flag-20">🚩 <strong>Flag 20: The Honest Read <Technique Name></strong></summary>
