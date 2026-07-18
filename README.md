@@ -1,18 +1,20 @@
 <p align="center">
-────────────────────────────
-
-        🛡️ THREAT HUNT REPORT
-
-             Just Another Day
-
-   Credential Compromise Investigation
-   Valid Accounts | RDP Abuse | Data Collection
-
-        Nimbus Health Environment
-
-────────────────────────────
+  <img
+    src="<img width="1024" height="576" alt="image" src="https://github.com/user-attachments/assets/9c64c2a8-fbac-4030-be12-0d8ade3788f3" />
+"
+    width="1200"
+    alt="Threat Hunt Cover Image"
+  />
 </p>
 
+<h1 align="center">
+🛡️ Threat Hunt Report – Just Another Day
+</h1>
+
+<p align="center">
+Credential Compromise Investigation<br>
+Valid Accounts | Remote Access | Lateral Movement | Data Exposure
+</p>
 
 
 
