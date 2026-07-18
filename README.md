@@ -1,20 +1,16 @@
-<p align="center">
-  <img width="1024" height="576" alt="image" src="https://github.com/user-attachments/assets/cdbc75a9-3388-4b0b-a6e2-00b6fbd70d90" />
-
-</p>
-
 <h1 align="center">
 🛡️ Threat Hunt Report – Just Another Day
 </h1>
-
+---
 <p align="center">
 Credential Compromise Investigation<br>
 Valid Accounts | Remote Access | Lateral Movement | Data Exposure
 </p>
 
+<p align="center">
+  <img width="1024" height="576" alt="image" src="https://github.com/user-attachments/assets/cdbc75a9-3388-4b0b-a6e2-00b6fbd70d90" />
 
-
-# 🛡️ Threat Hunt Report – <Just Another Day>
+</p>
 
 ---
 
