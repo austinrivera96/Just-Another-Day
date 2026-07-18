@@ -15,8 +15,7 @@
 
 ## 📌 Executive Summary
 
-<Brief, high-level overview of the threat hunt.  
-Answer what happened, why it matters, and what was discovered in 3–4 sentences.>
+This threat hunt investigated suspicious activity associated with the billing account `j.morris` within the Nimbus Health Windows environment. The investigation determined that the activity was not a curious employee with leftover access, but an external threat actor using valid credentials through remote interactive sessions from external IP addresses. The attacker performed reconnaissance, moved laterally across the environment, accessed restricted Billing and HR data, and staged sensitive payroll information outside of its intended location. No malware execution or traditional persistence mechanisms were identified, indicating a living-off-the-land intrusion focused on credential abuse and data collection.
 
 ---
 
@@ -73,7 +72,13 @@ What we need you to work out:
 
 ## 🧠 Hunt Overview
 
-<High-level narrative describing the attack lifecycle, key behaviors observed, and why this hunt matters.>
+The investigation began after the billing account `j.morris` displayed abnormal process activity compared to other users in the environment. Initial analysis revealed that the account was being accessed through RemoteInteractive logons originating from external IP addresses, indicating potential credential compromise rather than legitimate employee usage.
+
+After gaining access to the billing workstation, the attacker performed system and network reconnaissance using native Windows utilities including `whoami`, `hostname`, and `net.exe`. The attacker mapped accessible systems, identified the file server `NH-FS-01`, and pivoted through Remote Desktop sessions.
+
+On the file server, the attacker enumerated privileges, discovered available shares, and accessed sensitive payroll and HR documents outside the account's expected responsibilities. The attacker collected multiple HR-related documents, including payroll records and employee award information, before staging sensitive data within a Billing exception folder to blend with legitimate business files.
+
+The evidence shows a credential-based intrusion conducted interactively by an external operator using legitimate tools rather than malware. The absence of malicious binaries, persistence mechanisms, or normal employee workflows supports the conclusion of an external account compromise.
 
 ---
 
@@ -81,26 +86,26 @@ What we need you to work out:
 
 | Flag | Technique Category | MITRE ID | Priority |
 |-----:|-------------------|----------|----------|
-| 1 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 2 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 3 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 4 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 5 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 6 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 7 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 8 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 9 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 10 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 11 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 12 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 13 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 14 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 15 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 16 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 17 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 18 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 19 | <Placeholder> | <Placeholder> | <Placeholder> |
-| 20 | <Placeholder> | <Placeholder> | <Placeholder> |
+| 1 | Account Discovery / User Activity Analysis | T1087 | Medium |
+| 2 | Remote Services: Remote Desktop Protocol | T1021.001 | High |
+| 3 | External Remote Services / Valid Accounts | T1078 | Critical |
+| 4 | File and Directory Discovery (Benign Activity) | T1083 | Low |
+| 5 | System Owner/User Discovery | T1033 | Medium |
+| 6 | Network Share Discovery | T1135 | Medium |
+| 7 | Domain Discovery | T1018 | Medium |
+| 8 | Network Discovery / Remote Services | T1046 / T1021.001 | High |
+| 9 | Data from Information Repositories | T1213 | High |
+| 10 | Data Staged | T1074 | High |
+| 11 | Data from Information Repositories | T1213 | High |
+| 12 | Data Staged | T1074 | Critical |
+| 13 | Data from Information Repositories | T1213 | High |
+| 14 | Lateral Movement: Remote Services | T1021 | Critical |
+| 15 | Remote Services Without Follow-On Activity | T1021 | Medium |
+| 16 | Permission Groups Discovery | T1069 | Medium |
+| 17 | Network Share Discovery | T1135 | Medium |
+| 18 | Data from Local System | T1005 | High |
+| 19 | Data from Information Repositories | T1213 | Critical |
+| 20 | Valid Accounts / Account Compromise | T1078 | Critical |
 
 ---
 
@@ -117,22 +122,23 @@ _All flags below are collapsible for readability._
 HUNT LEAD: "The review flagged one billing account behaving oddly. Name it. That's who you're following."
 
 ### 📌 Finding
-Account `j.morris` was found to have run 766 processes over the span of 10 days. that is nearly 300 more processes than the next account. 
+Account `j.morris` was found to have run **766 processes** over the span of 10 days. that is nearly **300 more processes** than the next account. 
 
 ### 🔍 Evidence
 
 | Field | Value |
 |------|-------|
-| Host | nh-wks-bill-01.corp.nimbushealth.com |
-| Timestamp | (2026-03-08) - (2026-03-18) |
-| Process | N/a |
-| Parent Process | N/a |
-| Command Line | N/a |
+| Host | `nh-wks-bill-01.corp.nimbushealth.com` |
+| Timestamp | `2026-03-08` – `2026-03-18` |
+| Process | N/A |
+| Parent Process | N/A |
+| Command Line | N/A |
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+Baseline comparisons are an effective way to identify compromised accounts. The unusually high volume of process executions associated with `j.morris` indicated activity inconsistent with a normal billing analyst and warranted further investigation. This anomaly ultimately led to the discovery of credential misuse, lateral movement, and unauthorized access to sensitive Billing and HR resources.
 
 ### 🔧 KQL Query Used
+```kql
 DeviceProcessEvents
 | where DeviceName startswith "" "nh-"
 | where TimeGenerated between (
@@ -141,15 +147,10 @@ DeviceProcessEvents
     )
 | summarize Processes=count() by AccountName
 | order by Processes desc
+```
 
 ### 🖼️ Screenshot
 <img width="312" height="423" alt="image" src="https://github.com/user-attachments/assets/d73a7dd9-352a-4d66-8db0-d1244934987d" />
-
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-
 
 **Answer:** `j.morris`
 
@@ -170,16 +171,17 @@ Starting at `2026-03-09T02:28:07.8566046Z` the account `j.morris` can be seen lo
 
 | Field | Value |
 |------|-------|
-| Host | nh-wks-bill-01.corp.nimbushealth.com |
-| Timestamp | 2026-03-09T02:28:07.8566046Z |
-| Process | <Placeholder> |
-| Parent Process | <Placeholder> |
-| Command Line | <Placeholder> |
+| Host | `nh-wks-bill-01.corp.nimbushealth.com` |
+| Timestamp | `2026-03-09T02:28:07.8566046Z` |
+| Process | `svchost.exe` |
+| Parent Process | `svchost.exe` |
+| Command Line | `svchost.exe -k netsvcs -p -s UserManager` |
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+A `RemoteInteractive` logon is commonly associated with Remote Desktop Protocol (RDP) sessions. Because the account belonged to a billing employee expected to work from a local workstation, repeated successful remote interactive logons were an immediate indicator of suspicious activity. This finding established that the account was being operated remotely and became the first indication that the investigation involved credential misuse rather than routine employee behavior
 
 ### 🔧 KQL Query Used
+```kql
 DeviceLogonEvents
 | where DeviceName startswith "" "nh-"
 | where TimeGenerated between (
@@ -188,18 +190,13 @@ DeviceLogonEvents
     )
 | where AccountName == "j.morris"
 | where ActionType == "LogonSuccess"
-| project Timestamp, DeviceName, LogonType, RemoteIP
+| where LogonType == "RemoteInteractive"
+| project Timestamp, DeviceName, LogonType, RemoteIP, AccountName
 | sort by Timestamp asc
+```
 
 ### 🖼️ Screenshot
-
-<img width="792" height="85" alt="image" src="https://github.com/user-attachments/assets/05b0430b-005c-43ce-80cf-ab49a482cdc8" />
-
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
+<img width="1530" height="404" alt="image" src="https://github.com/user-attachments/assets/1613ec20-f0ad-4f23-825f-a803d54afc1a" />
 
 **Answer:** `RemoteInteractive`
 </details>
@@ -213,22 +210,23 @@ DeviceLogonEvents
 HUNT LEAD: "Here's what should stop you. Those remote sessions into the billing workstation are not coming from inside the clinic. Give me one of the sources they're coming from, and satisfy yourself it isn't an internal address."
 
 ### 📌 Finding
-The account `j.morris` was accessed remotely via remote ip `193.36.225.245` and `136.144.33.18`.
+The account `j.morris` was accessed remotely via remote IP's `193.36.225.245` and `136.144.33.18`.
 
 ### 🔍 Evidence
 
 | Field | Value |
 |------|-------|
-| Host | nh-wks-bill-01.corp.nimbushealth.com|
-| Timestamp | 2026-03-09T02:28:07.8598503Z |
-| Process | svhost.exe |
-| Parent Process | svhost.exe |
-| Command Line | svchost.exe -k netsvcs -p -s UserManager |
+| Host | `nh-wks-bill-01.corp.nimbushealth.com` |
+| Timestamp | `2026-03-09T02:28:07.8598503Z` |
+| Process | `svchost.exe` |
+| Parent Process | `svchost.exe` |
+| Command Line | `svchost.exe -k netsvcs -p -s UserManager` |
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+Successful Remote Desktop logons originating from public IP addresses are a strong indicator of credential compromise or unauthorized remote access. Rather than representing normal employee activity from within the clinic, these sessions demonstrate that the billing account was being operated from outside the organization's network. This finding shifted the investigation away from insider misuse and toward an external threat actor leveraging valid credentials.
 
 ### 🔧 KQL Query Used
+```kql
 DeviceLogonEvents
 | where DeviceName startswith "" "nh-"
 | where TimeGenerated between (
@@ -241,17 +239,12 @@ DeviceLogonEvents
 | where isnotempty( RemoteIP)
 | project Timestamp, DeviceName, LogonType, RemoteIP
 | sort by Timestamp asc
+```
 
 ### 🖼️ Screenshot
 <img width="798" height="279" alt="image" src="https://github.com/user-attachments/assets/e9e2be43-607c-4ef2-bb15-ad63c8b81164" />
 
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
-
-**Answer:** 193.36.225.245
+**Answer:** `193.36.225.245`
 
 </details>
 
@@ -262,8 +255,6 @@ DeviceLogonEvents
 
 ### 🎯 Objective
 HUNT LEAD: "Sort the account's command-shell activity by time and the first thing you'll hit is a burst of deletions. Before you build a theory on it, tell me, is that the intruder, or is it noise. And say how you know."
-
-Format: short phrase, what the early deletions are
 
 ### 📌 Finding
 Upon reviewin the DeviceProcess events, we can see that several directories and files were removed/deleted. This may seem malicious but it upon looking at the command line and the parent process you can see that it is actually just a onedrive clean up following an update. 
@@ -279,7 +270,7 @@ Upon reviewin the DeviceProcess events, we can see that several directories and 
 | Command Line | "cmd.exe" /q /c rmdir /s /q "C:\Users\j.morris\AppData\Local\Microsoft\OneDrive\26.032.0217.0003" |
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+At first glance, a burst of directory deletions could indicate attacker activity such as evidence destruction or anti-forensics. However, examining the command line, execution context, and parent processes showed the deletions were initiated by a legitimate Microsoft OneDrive update process removing an older application version. Correctly identifying this as benign prevented the investigation from pursuing a false lead and allowed the hunt to remain focused on the genuine malicious activity involving remote access, reconnaissance, and data collection. This finding highlights the importance of validating suspicious-looking events with process context before attributing them to an attacker.
 
 ### 🔧 KQL Query Used
 DeviceProcessEvents
@@ -295,13 +286,6 @@ DeviceProcessEvents
 
 ### 🖼️ Screenshot
 <img width="1201" height="403" alt="image" src="https://github.com/user-attachments/assets/043108d2-b42c-470a-9617-613e96f94f5e" />
-
-
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
 
 **Answer:** `OneDrive update cleanup, noise`
 </details>
@@ -352,12 +336,6 @@ DeviceProcessEvents
 ### 🖼️ Screenshot
 <img width="1208" height="395" alt="image" src="https://github.com/user-attachments/assets/56420915-9d00-41b6-963f-551667ffb300" />
 
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
-
 **Answer:** `whoami, hostname, net use, net view, net view\\NH-FS-01`
 </details>
 
@@ -398,12 +376,6 @@ DeviceProcessEvents
 
 ### 🖼️ Screenshot
 <img width="1209" height="58" alt="image" src="https://github.com/user-attachments/assets/1bce04a5-4bc8-45b2-a845-7ca2685a992e" />
-
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
 
 **Answer:** NH-FS-01 
 
@@ -447,12 +419,6 @@ DeviceProcessEvents
 ### 🖼️ Screenshot
 <img width="1213" height="85" alt="image" src="https://github.com/user-attachments/assets/9e6a3e1d-35ac-4f01-a0ea-76e5a44698ac" />
 
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
-
 **Answer:** `"net.exe" view /domain:nimbus`
 </details>
 
@@ -493,13 +459,6 @@ DeviceProcessEvents
 
 ### 🖼️ Screenshot
 <img width="1204" height="269" alt="image" src="https://github.com/user-attachments/assets/65a65237-257e-472b-aac6-b3e6a259ca1e" />
-
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
-
 
 **Answer:** `Network discovery, Remote Desktop pivot`
 </details>
@@ -545,12 +504,6 @@ DeviceProcessEvents
 ### 🖼️ Screenshot
 <img width="1209" height="490" alt="image" src="https://github.com/user-attachments/assets/49ade9b5-8167-43a9-95bb-d8f4e6ae37aa" />
 
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
-
 **Answer:** `Approved`
 </details>
 
@@ -595,11 +548,6 @@ DeviceProcessEvents
 
 ### 🖼️ Screenshot
 <img width="1209" height="490" alt="image" src="https://github.com/user-attachments/assets/49ade9b5-8167-43a9-95bb-d8f4e6ae37aa" />
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
 
 **Answer:** approved_pending_invoice_INV-773221_20260311.txt
 </details>
@@ -661,11 +609,6 @@ DeviceFileEvents
 
 <img width="1014" height="319" alt="image" src="https://github.com/user-attachments/assets/93da4c7e-5c1e-47f0-9b52-e440988dd7db" />
 
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
-
 **Answer:** `review_audit_20260311.txt`
 </details>
 
@@ -710,12 +653,6 @@ DeviceFileEvents
 ### 🖼️ Screenshot
 <img width="1552" height="175" alt="image" src="https://github.com/user-attachments/assets/0c78e21e-139d-4847-a629-19ad91f74eab" />
 
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
-
 **Answer:** `temp_payroll_review_jmorris_20260311.txt.txt`
 </details>
 
@@ -751,7 +688,6 @@ The access of `quarterly_awards_shortlist_20260310.txt` shows the attacker expan
 
 The presence of unrelated HR documents in the same collection burst suggests the attacker was likely enumerating accessible files and opportunistically gathering valuable personnel information.
 
-
 ### 🔧 KQL Query Used
 ```kql
 DeviceProcessEvents
@@ -783,14 +719,10 @@ DeviceFileEvents
 
 <img width="1529" height="196" alt="image" src="https://github.com/user-attachments/assets/525b9756-7b63-4f2a-8bd9-20c1eb5b1350" />
 
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
-
 **Answer:** `quarterly_awards_shortlist_20260310.txt`
 </details>
+
+---
 
 <details>
 <summary id="-flag-14">🚩 <strong>Flag 14: The Onward Hops <Technique Name></strong></summary>
@@ -830,13 +762,6 @@ DeviceLogonEvents
 
 ### 🖼️ Screenshot
 <img width="1300" height="378" alt="image" src="https://github.com/user-attachments/assets/d8e7d238-750f-484f-9dbb-41205e8c8170" />
-
-
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
 
 **Answer:** nh-wks-it-01.corp.nimbushealth.com, nh-fs-01.corp.nimbushealth.com
 </details>
@@ -897,10 +822,7 @@ DeviceFileEvents
 
 <img width="1868" height="829" alt="image" src="https://github.com/user-attachments/assets/43ed45a5-a9f8-4a7f-be5a-1764b0898468" />
 
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
+**Answer:** the attacker established a remote session but did not execute commands, run tools, or perform meaningful actions there
 
 </details>
 
@@ -945,12 +867,6 @@ DeviceProcessEvents
 ### 🖼️ Screenshot
 <img width="1090" height="233" alt="image" src="https://github.com/user-attachments/assets/6daaf0a7-d3ab-4c07-94af-1195347ae731" />
 
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
-
 **Answer:** `"whoami.exe" /groups`
 </details>
 
@@ -994,13 +910,6 @@ DeviceProcessEvents
 ```
 ### 🖼️ Screenshot
 <img width="1306" height="310" alt="image" src="https://github.com/user-attachments/assets/34e500bf-efd4-4778-8662-8cf9e56444b5" />
-
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
-
 
 **Answer:** `"net.exe" share`
 </details>
@@ -1047,12 +956,6 @@ DeviceProcessEvents
 ### 🖼️ Screenshot
 <img width="1336" height="244" alt="image" src="https://github.com/user-attachments/assets/9e2e7900-0429-4a32-84a2-754bfecb20b2" />
 
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
-
 **Answer:** `payroll_review_dpatel_20260311.txt`
 </details>
 
@@ -1086,11 +989,6 @@ The attacker did not only take the payroll file; they also accessed other HR mat
 ### 🖼️ Screenshot
 <Insert screenshot>
 
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
-
 **Answer:** The attacker did not only take the payroll file; they also accessed other HR materials (such as the quarterly awards shortlist), showing collection of broader employee information from HR shares
 
 </details>
@@ -1107,52 +1005,46 @@ HUNT LEAD: "The clinic will want to write this up as a curious employee with lef
 What happened: A threat actor was driving the compromised account interactively from the external IP 148.64.103.173, not a curious employee.
 What is absent: No malware deployment/persistence artifacts or evidence of normal insider activity (routine access patterns/user behavior) were observed.
 
-### 🔍 Evidence
-
-| Field | Value |
-|------|-------|
-| Host | <Placeholder> |
-| Timestamp | <Placeholder> |
-| Process | <Placeholder> |
-| Parent Process | <Placeholder> |
-| Command Line | <Placeholder> |
-
 ### 💡 Why it matters
 <Explain impact, risk, and relevance>
 
-### 🔧 KQL Query Used
-<Add KQL here>
+**Answer:** 
 
-### 🖼️ Screenshot
-<Insert screenshot>
-
-### 🛠️ Detection Recommendation
-
-**Hunting Tip:**  
-<Actionable guidance for defenders>
-
-**Answer:** What happened: A threat actor was driving the compromised account interactively from the external IP 148.64.103.173, not a curious employee.
+What happened: A threat actor was driving the compromised account interactively from the external IP 148.64.103.173, not a curious employee.
 What is absent: No malware deployment/persistence artifacts or evidence of normal insider activity (routine access patterns/user behavior) were observed.
 </details>
 
+---
 
-## 🚨 Detection Gaps & Recommendations
+# 🚨 Detection Gaps & Recommendations
 
-### Observed Gaps
-- <Placeholder>
-- <Placeholder>
-- <Placeholder>
+## Observed Gaps
 
-### Recommendations
-- <Placeholder>
-- <Placeholder>
-- <Placeholder>
+- RemoteInteractive logons from external IP addresses were not blocked or sufficiently alerted on.
+- Excessive permissions allowed a billing account to access HR and file server resources outside its business role.
+- Native Windows reconnaissance commands (`whoami`, `hostname`, `net.exe`) were not detected as suspicious behavior.
+- No alerting existed for cross-department data movement involving sensitive HR files.
+- SMB share access monitoring was insufficient to identify abnormal file collection activity.
+
+## Recommendations
+
+- Implement conditional access policies and MFA requirements for remote access.
+- Restrict user permissions using least privilege and role-based access controls.
+- Create detections for suspicious combinations of:
+  - RemoteInteractive logons
+  - External IP addresses
+  - Sensitive file access
+  - Discovery commands
+- Monitor and alert on unusual access to HR, payroll, and executive data shares.
+- Establish data loss prevention controls to detect sensitive files moving between departments.
 
 ---
 
-## 🧾 Final Assessment
+# 🧾 Final Assessment
 
-<Concise executive-style conclusion summarizing risk, attacker sophistication, and defensive posture.>
+The Nimbus Health environment experienced a credential-based intrusion where an external threat actor used the compromised `j.morris` account to perform reconnaissance, move laterally, and collect sensitive business information. The attacker relied heavily on legitimate Windows utilities and existing access, avoiding malware deployment and reducing traditional detection opportunities.
+
+The incident demonstrates the risk of excessive permissions and insufficient monitoring of remote account usage. While endpoint defenses remained effective against malware-based attacks, visibility gaps around identity abuse, lateral movement, and sensitive data access allowed the attacker to operate successfully.
 
 ---
 
