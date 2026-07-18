@@ -835,7 +835,7 @@ DeviceFileEvents
 ---
 
 <details>
-<summary id="-flag-16">🚩 <strong>Flag 6: Checking Their Rights <Technique Name></strong></summary>
+<summary id="-flag-16">🚩 <strong>Flag 16: Checking Their Rights <Technique Name></strong></summary>
 
 ### 🎯 Objective
 HUNT LEAD: "On the file server, the account's operator ran a command to check what privileges and groups they had. Give me it."
