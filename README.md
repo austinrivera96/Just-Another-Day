@@ -2,7 +2,6 @@
   <img
     src="<img width="1024" height="576" alt="image" src="https://github.com/user-attachments/assets/9c64c2a8-fbac-4030-be12-0d8ade3788f3" />
 "
-    width="1200"
     alt="Threat Hunt Cover Image"
   />
 </p>
