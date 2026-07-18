@@ -1,7 +1,8 @@
 <h1 align="center">
 🛡️ Threat Hunt Report – Just Another Day
 </h1>
----
+
+
 <p align="center">
 Credential Compromise Investigation<br>
 Valid Accounts | Remote Access | Lateral Movement | Data Exposure
