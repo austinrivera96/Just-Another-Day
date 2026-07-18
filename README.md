@@ -1,9 +1,6 @@
 <p align="center">
-  <img
-    src="<img width="1024" height="576" alt="image" src="https://github.com/user-attachments/assets/9c64c2a8-fbac-4030-be12-0d8ade3788f3" />
-"
-    alt="Threat Hunt Cover Image"
-  />
+  <img width="1024" height="576" alt="image" src="https://github.com/user-attachments/assets/cdbc75a9-3388-4b0b-a6e2-00b6fbd70d90" />
+
 </p>
 
 <h1 align="center">
