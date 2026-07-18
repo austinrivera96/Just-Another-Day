@@ -35,9 +35,9 @@ What we need you to work out:
 
 ## 🧭 Scope & Environment
 
-- **Environment:** <Nimbus Health Windows Estate, Billing, HR, IT, File Server (All `nh-*` hosts)>
-- **Data Sources:** <`Microsoft Sentinel` `Microsoft Defender for Endpoint`>   
-- **Timeframe:** <2026-03-11> 
+- **Environment:** Nimbus Health Windows Estate, Billing, HR, IT, File Server (All `nh-*` hosts)
+- **Data Sources:** `Microsoft Sentinel` `Microsoft Defender for Endpoint`   
+- **Timeframe:** 2026-03-08 - 2026-03-18 23:59:59
 
 ---
 
