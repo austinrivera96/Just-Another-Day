@@ -1,9 +1,16 @@
 <p align="center">
-  <img
-    src="https://github.com/user-attachments/assets/337bb215-8833-4653-b570-93c443bd9c11"
-    width="1200"
-    alt="Threat Hunt Cover Image"
-  />
+────────────────────────────
+
+        🛡️ THREAT HUNT REPORT
+
+             Just Another Day
+
+   Credential Compromise Investigation
+   Valid Accounts | RDP Abuse | Data Collection
+
+        Nimbus Health Environment
+
+────────────────────────────
 </p>
 
 
@@ -257,7 +264,7 @@ DeviceLogonEvents
 HUNT LEAD: "Sort the account's command-shell activity by time and the first thing you'll hit is a burst of deletions. Before you build a theory on it, tell me, is that the intruder, or is it noise. And say how you know."
 
 ### 📌 Finding
-Upon reviewin the DeviceProcess events, we can see that several directories and files were removed/deleted. This may seem malicious but it upon looking at the command line and the parent process you can see that it is actually just a onedrive clean up following an update. 
+Upon reviewing the DeviceProcess events, we can see that several directories and files were removed/deleted. This may seem malicious but it upon looking at the command line and the parent process you can see that it is actually just a onedrive clean up following an update. 
 
 ### 🔍 Evidence
 
@@ -273,6 +280,7 @@ Upon reviewin the DeviceProcess events, we can see that several directories and 
 At first glance, a burst of directory deletions could indicate attacker activity such as evidence destruction or anti-forensics. However, examining the command line, execution context, and parent processes showed the deletions were initiated by a legitimate Microsoft OneDrive update process removing an older application version. Correctly identifying this as benign prevented the investigation from pursuing a false lead and allowed the hunt to remain focused on the genuine malicious activity involving remote access, reconnaissance, and data collection. This finding highlights the importance of validating suspicious-looking events with process context before attributing them to an attacker.
 
 ### 🔧 KQL Query Used
+```kql
 DeviceProcessEvents
 | where DeviceName startswith "" "nh-"
 | where TimeGenerated between (
@@ -283,6 +291,7 @@ DeviceProcessEvents
 | where FileName has_any ("cmd.exe", "powershell.exe")
 | project TimeGenerated, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated desc 
+```
 
 ### 🖼️ Screenshot
 <img width="1201" height="403" alt="image" src="https://github.com/user-attachments/assets/043108d2-b42c-470a-9617-613e96f94f5e" />
@@ -319,9 +328,10 @@ NH-FS-01
 | Command Line | `whoami`, `hostname`, `net use`, `net view`, `net view\\NH-FS-01`  |
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+The sequence of `whoami`, `hostname`, `net use`, and `net view` commands demonstrates deliberate post-compromise reconnaissance rather than normal billing activity. These commands allowed the attacker to understand their current access level, identify the compromised host, discover available network resources, and locate potential targets. This behavior is commonly observed after initial access because attackers must first understand the environment before attempting lateral movement or data collection. The use of built-in Windows utilities also shows a living-off-the-land approach designed to blend in with legitimate administrative activity.
 
 ### 🔧 KQL Query Used
+```kql
 DeviceProcessEvents
 | where DeviceName startswith "" "nh-"
 | where TimeGenerated between (
@@ -332,6 +342,7 @@ DeviceProcessEvents
 | project TimeGenerated, AccountName, FileName, ProcessCommandLine, ProcessId
 //| where ProcessCommandLine contains "whoami"
 | order by TimeGenerated asc
+```
 
 ### 🖼️ Screenshot
 <img width="1208" height="395" alt="image" src="https://github.com/user-attachments/assets/56420915-9d00-41b6-963f-551667ffb300" />
@@ -361,9 +372,10 @@ The last command in the burst we discovered before shows that they are targeting
 | Command Line | net  view \\NH-FS-01 |
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+The attacker moving from general discovery to specifically querying `NH-FS-01 indicates` that the reconnaissance phase transitioned into target selection. Identifying a specific file server suggests the attacker was searching for systems containing valuable resources rather than randomly exploring the environment. This server later became relevant during the investigation because it hosted sensitive Billing and HR data, demonstrating that early reconnaissance activity directly supported later collection efforts.
 
 ### 🔧 KQL Query Used
+```kql
 DeviceProcessEvents
 | where DeviceName startswith "" "nh-"
 | where TimeGenerated between (
@@ -373,6 +385,7 @@ DeviceProcessEvents
 | where InitiatingProcessAccountName == "j.morris"
 | project TimeGenerated, AccountName, FileName, ProcessCommandLine, ProcessId, InitiatingProcessCommandLine
 | order by TimeGenerated asc
+```
 
 ### 🖼️ Screenshot
 <img width="1209" height="58" alt="image" src="https://github.com/user-attachments/assets/1bce04a5-4bc8-45b2-a845-7ca2685a992e" />
@@ -403,9 +416,10 @@ The attacker is seen using the `"net.exe" view /domain:nimbus` command to query 
 | Command Line | "net.exe" view /domain:nimbus |
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+The use of `net.exe view /domain:nimbus` shows the attacker expanded their visibility beyond a single workstation and began mapping the broader domain environment. Domain-level discovery helps attackers identify additional systems, available resources, and potential lateral movement paths. In this case, the command indicates the compromised billing account was being used strategically to understand the organization's network layout rather than simply accessing files needed for normal business operations.
 
 ### 🔧 KQL Query Used
+```kql
 DeviceProcessEvents
 | where DeviceName startswith "" "nh-"
 | where TimeGenerated between (
@@ -415,6 +429,7 @@ DeviceProcessEvents
 | where InitiatingProcessAccountName == "j.morris"
 | project TimeGenerated, AccountName, FileName, ProcessCommandLine, ProcessId, InitiatingProcessCommandLine
 | order by TimeGenerated asc
+```
 
 ### 🖼️ Screenshot
 <img width="1213" height="85" alt="image" src="https://github.com/user-attachments/assets/9e6a3e1d-35ac-4f01-a0ea-76e5a44698ac" />
@@ -441,12 +456,13 @@ The attacker queried DNS to discover network hosts based off ip addresses and ra
 | Timestamp | 2026-03-11T13:18:51.6781043Z - 2026-03-11T13:26:54.8695593Z |
 | Process | nslookup.exe/ mstsc.exe |
 | Parent Process | powershell.exe/cmd.exe |
-| Command Line | <Placeholder> |
+| Command Line | "nslookup.exe" 10.1.0.233(-235, 10.1.7.255, 244.0.0.22, 10.0.1.1)/ mstsc  /v:10.1.0.235, mstsc  /v:10.1.0.233|
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+The combination of network discovery followed immediately by Remote Desktop connections demonstrates a clear reconnaissance-to-lateral-movement workflow. The attacker first identified reachable systems and then used RDP to pivot to additional hosts. This behavior is significant because it shows the compromised account was not limited to the initial workstation and that the attacker was actively expanding their access across the environment.
 
 ### 🔧 KQL Query Used
+```kql
 DeviceProcessEvents
 | where DeviceName startswith "" "nh-"
 | where TimeGenerated between (
@@ -456,6 +472,7 @@ DeviceProcessEvents
 | where InitiatingProcessAccountName == "j.morris"
 | project TimeGenerated, AccountName, FileName, ProcessCommandLine, ProcessId, InitiatingProcessCommandLine
 | order by TimeGenerated asc
+```
 
 ### 🖼️ Screenshot
 <img width="1204" height="269" alt="image" src="https://github.com/user-attachments/assets/65a65237-257e-472b-aac6-b3e6a259ca1e" />
@@ -485,7 +502,7 @@ The attacker executed the command `"NOTEPAD.EXE" \\nh-fs-01\Billing\2026-03\Appr
 | Command Line | "NOTEPAD.EXE" \\nh-fs-01\Billing\2026-03\Approved\approved_pending_invoice_INV-773221_20260311.txt|
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+Accessing the Billing `Approved` workflow folder was inconsistent with the expected responsibilities of a billing submissions analyst. The attacker used a valid account to reach a location associated with a more privileged business process, demonstrating that excessive permissions enabled unauthorized access without requiring exploitation. This finding highlights the risk of weak role-based access controls and shows how compromised accounts can abuse legitimate permissions to access sensitive workflows.
 
 ### 🔧 KQL Query Used
 ```kql
@@ -530,7 +547,7 @@ The attacker accessed two files named `approved_pending_invoice_INV-773221_20260
 | Command Line | "NOTEPAD.EXE" \\nh-fs-01\Billing\2026-03\Approved\approved_pending_invoice_INV-773221_20260311.txt|
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+The access of approved invoice records shows the attacker was not simply testing access but interacting with business-critical Billing data. While the invoice itself may not represent the highest-risk information collected, it confirms the compromised account was accessing workflow stages beyond its normal duties. This provided additional evidence that the account was being misused and helped establish the scope of unauthorized activity.
 
 ### 🔧 KQL Query Used
 ```kql
@@ -574,7 +591,7 @@ opened the `file review_audit_20260311.txt` from a remote network share using Wi
 | Command Line | "NOTEPAD.EXE" \\nh-fs-01\Billing\2026-03\AuditTrail\review_audit_20260311.txt |
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+Accessing the Billing audit trail is significant because these files are intended to document workflow activity and reviewer actions. An attacker accessing audit-related records may be attempting to understand approval processes or identify sensitive information. This behavior demonstrates interest beyond routine file access and suggests the attacker was exploring operational processes and accountability mechanisms.
 
 ### 🔧 KQL Query Used
 ```kql
@@ -621,7 +638,7 @@ DeviceFileEvents
 HUNT LEAD: "This is the one that matters. The account pulled payroll material out of HR and dropped it into the billing share, renamed to look like a billing exception, so it would sit there without raising an eyebrow. Name the payroll file as it ended up in the billing folder."
 
 ### 📌 Finding
-The compromised account **j.morris** accessed a payroll document from the HR share and created a copy of it in the **Billing\Exceptions** directory. The payroll file retained its original name, allowing sensitive HR data to be staged within a legitimate billing workflow location where it was less likely to attract attention.
+The compromised account `j.morris` accessed a payroll document from the HR share and created a copy of it in the `Billing\Exceptions` directory. The payroll file retained its original name, allowing sensitive HR data to be staged within a legitimate billing workflow location where it was less likely to attract attention.
 
 ### 🔍 Evidence
 
@@ -634,7 +651,7 @@ The compromised account **j.morris** accessed a payroll document from the HR sha
 | Command Line | `NOTEPAD.EXE \\nh-fs-01\HR\2026-03\Payroll\temp_payroll_review_jmorris_20260311.txt.txt` |
 
 ### 💡 Why it matters
-This activity demonstrates **unauthorized access to sensitive HR payroll information** followed by **staging of the data in an unrelated Billing share**. By placing the file in the `Billing\Exceptions` directory, the attacker attempted to blend the payroll data with legitimate billing artifacts, reducing the likelihood of immediate detection. Cross-department file movement involving sensitive data is a strong indicator of potential data theft or preparation for exfiltration.
+This activity demonstrates unauthorized access to sensitive HR payroll information followed by staging of the data in an unrelated Billing share. By placing the file in the `Billing\Exceptions` directory, the attacker attempted to blend the payroll data with legitimate billing artifacts, reducing the likelihood of immediate detection. Cross-department file movement involving sensitive data is a strong indicator of potential data theft or preparation for exfiltration.
 
 ### 🔧 KQL Query Used
 ```kql
@@ -657,12 +674,6 @@ DeviceFileEvents
 </details>
 
 ---
-
-<details>
-<summary id="-flag-13">🚩 <strong>Flag 13: The Second Target <Technique Name></strong></summary>
-
-### 🎯 Objective
-HUNT LEAD: "Payroll wasn't the only thing they took from HR. In the same burst, they touched a second HR file that has nothing to do with payroll. Name it, and note what it tells you about the scope."
 
 <details>
 <summary id="-flag-13">🚩 <strong>Flag 13: The Second Target <Technique Name></strong></summary>
@@ -731,20 +742,20 @@ DeviceFileEvents
 HUNT LEAD: "They didn't stop at the billing box. From there the account opened remote sessions onto two more machines. Name both."
 
 ### 📌 Finding
-<High-level description of the activity>
+The attacker used Remote Desktop Protocol to succesfully gain remote access to two seperate domains(`nh-wks-it-01.corp.nimbushealth.com` and `nh-fs-01.corp.nimbushealth.com`) showing clear lateral movement. 
 
 ### 🔍 Evidence
 
 | Field | Value |
 |------|-------|
-| Host | <Placeholder> |
-| Timestamp | <Placeholder> |
-| Process | <Placeholder> |
-| Parent Process | <Placeholder> |
-| Command Line | <Placeholder> |
+| Host | `nh-fs-01.corp.nimbushealth.com`|
+| Timestamp | `2026-03-11T13:36:50.4649092Z` |
+| Process | `svchost.exe` |
+| Parent Process | `svchost.exe` |
+| Command Line | `svchost.exe -k netsvcs -p -s UserManager` |
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+The movement from the billing workstation to additional systems confirms that the compromise extended beyond the initial access point. Lateral movement using Remote Desktop allowed the attacker to continue operating with the stolen credentials across the environment. Identifying these additional hosts was critical because it expanded the investigation scope and revealed that the incident involved multiple systems rather than a single compromised workstation.
 
 ### 🔧 KQL Query Used
 ```kql
@@ -775,7 +786,7 @@ DeviceLogonEvents
 HUNT LEAD: "One of those two hops is a red herring, and I want you to prove it rather than assume it. They landed on the IT workstation. Did they actually do anything there? Check, and tell me what you found."
 
 ### 📌 Finding
-the attacker established a remote session but did not execute commands, run tools, or perform meaningful actions there
+The attacker established a remote session but did not execute commands, run tools, or perform meaningful actions there
 
 ### 🔍 Evidence
 
@@ -788,7 +799,7 @@ the attacker established a remote session but did not execute commands, run tool
 | Command Line | N/a |
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+Proving that the attacker established a session but performed no meaningful activity prevents investigators from incorrectly expanding the incident scope. A remote connection alone does not confirm compromise impact; endpoint activity, file access, and process execution must support the conclusion. This finding demonstrates the importance of validating attacker behavior rather than assuming every accessed system was compromised.
 
 ### 🔧 KQL Query Used
 ```kql
@@ -848,7 +859,7 @@ The attacker enumerated accounnt priveleges on the file server using the `"whoam
 | Command Line | "whoami.exe" /groups|
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+Running `whoami.exe /groups` shows the attacker was evaluating the privileges available to the compromised account after reaching the file server. Privilege discovery helps attackers determine what resources they can access and whether additional escalation opportunities exist. This confirms the attacker was actively assessing their level of control within the environment rather than simply browsing files.
 
 ### 🔧 KQL Query Used
 ```kql
@@ -892,7 +903,7 @@ The attacker used net.exe with the share command to list available SMB shares on
 | Command Line | "net.exe" share |
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+The use of `net.exe` share allowed the attacker to enumerate available SMB shares on the file server and identify potential locations containing valuable information. This is a common discovery step before data collection because attackers need to understand where sensitive files are stored. In this investigation, share enumeration directly supported the later discovery and access of HR and payroll data.
 
 ### 🔧 KQL Query Used
 ```kql
@@ -936,7 +947,7 @@ The attacker accessed the file payroll_review_dpatel_20260311.txt using `NOTEPAD
 | Command Line | "NOTEPAD.EXE" C:\Users\j.morris\Documents\payroll_review_dpatel_20260311.txt |
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+Accessing another employee's payroll review file demonstrates that the attacker expanded beyond the original compromised user's data and began collecting information belonging to other employees. Payroll information is highly sensitive because it contains personal and financial details. This finding confirms the incident involved unauthorized data access and not simply misuse of the compromised employee's own files.
 
 ### 🔧 KQL Query Used
 ```kql
@@ -972,22 +983,10 @@ The attacker did not only take the payroll file; they also accessed other HR mat
 
 ### 🔍 Evidence
 
-| Field | Value |
-|------|-------|
-| Host | <Placeholder> |
-| Timestamp | <Placeholder> |
-| Process | <Placeholder> |
-| Parent Process | <Placeholder> |
-| Command Line | <Placeholder> |
+Evidence is found in previous flags. 
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
-
-### 🔧 KQL Query Used
-<Add KQL here>
-
-### 🖼️ Screenshot
-<Insert screenshot>
+The collection of multiple HR documents demonstrates that the attacker's objective extended beyond a single payroll file. Accessing unrelated HR materials indicates broader data discovery and collection activity targeting employee information. This increases the potential impact of the incident because it suggests the attacker was gathering whatever sensitive information was available rather than pursuing one isolated document.
 
 **Answer:** The attacker did not only take the payroll file; they also accessed other HR materials (such as the quarterly awards shortlist), showing collection of broader employee information from HR shares
 
@@ -1006,7 +1005,7 @@ What happened: A threat actor was driving the compromised account interactively 
 What is absent: No malware deployment/persistence artifacts or evidence of normal insider activity (routine access patterns/user behavior) were observed.
 
 ### 💡 Why it matters
-<Explain impact, risk, and relevance>
+This finding establishes the true nature of the incident: an external threat actor using compromised credentials rather than an employee accidentally accessing restricted information. The absence of malware, persistence mechanisms, or unusual employee workflows indicates the attacker relied on legitimate access and built-in Windows tools to operate. This distinction is critical because traditional malware-focused defenses may not detect identity-based attacks, making monitoring of authentication behavior, permissions, and data access patterns essential.
 
 **Answer:** 
 
